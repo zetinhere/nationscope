@@ -1,32 +1,35 @@
 // The pages of NationScope: dashboard, one profile per country, the
-// comparison tool, the rankings table, the indicator guide and about. Every
+// comparison tool, the rankings table, the indicator guide and about. Each
 // page is a string of HTML built from the data in data.js; nothing is
 // fetched from anywhere else.
 
-import { COUNTRIES, INDICATORS, DATA_YEAR, WORLD_POPULATION_2024, byCode, density, rankOf, sortedBy } from './data.js';
-import { fmtInt, fmtMoney, fmtMoneyShort, fmtPop, fmtPopShort, fmtSigned, fmtValue, escapeHtml } from './format.js';
-import { barChart, lineChart, groupedBars } from './charts.js';
+import { COUNTRIES, INDICATORS, DATA_YEAR, WORLD_POPULATION_2024, byCode, density, rankOf, sortedBy } from "./data.js";
+import { fmtInt, fmtMoney, fmtMoneyShort, fmtPop, fmtPopShort, fmtSigned, fmtValue, escapeHtml } from "./format.js";
+import { barChart, lineChart, groupedBars } from "./charts.js";
 
-const SOURCE = `Source: World Bank, World Development Indicators, ${DATA_YEAR}.`;
+const SOURCE_LINE = `Source: World Bank, World Development Indicators, ${DATA_YEAR}.`;
 
 function ordinal(n) {
-  return `${n}${n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'}`;
+  if (n === 1) return "1st";
+  if (n === 2) return "2nd";
+  if (n === 3) return "3rd";
+  return `${n}th`;
 }
 
 // A headline figure: label on top, the number big, a note underneath.
-function stat(label, value, sub) {
+function figure(label, value, sub) {
   return `<div class="stat"><span class="stat-label">${escapeHtml(label)}</span><span class="stat-value">${escapeHtml(value)}</span><span class="stat-sub">${escapeHtml(sub)}</span></div>`;
 }
 
-function rankNote(country, key, what) {
+function rankText(country, key, what) {
   return `${ordinal(rankOf(country, key))} of 12 in ${what}`;
 }
 
 // Short forms for chart labels, where the full wording would not fit.
-function chartValue(key, value) {
-  if (key === 'pop') return fmtPopShort(value);
-  if (key === 'gdp') return fmtMoneyShort(value);
-  if (key === 'gdppc') return `$${fmtInt(value)}`;
+function shortValue(key, value) {
+  if (key === "pop") return fmtPopShort(value);
+  if (key === "gdp") return fmtMoneyShort(value);
+  if (key === "gdppc") return `$${fmtInt(value)}`;
   return fmtValue(key, value);
 }
 
@@ -47,38 +50,38 @@ export function dashboard() {
   const totalPop = COUNTRIES.reduce((s, c) => s + c.pop, 0);
   const totalGdp = COUNTRIES.reduce((s, c) => s + c.gdp, 0);
   const share = ((totalPop / WORLD_POPULATION_2024) * 100).toFixed(0);
-  const byPop = sortedBy('pop').slice(0, 5);
-  const byGdp = sortedBy('gdp').slice(0, 5);
-  const longestLived = sortedBy('life')[0];
-  const fastestGrowing = sortedBy('growth')[0];
-  const richest = sortedBy('gdppc')[0];
+  const byPop = sortedBy("pop").slice(0, 5);
+  const byGdp = sortedBy("gdp").slice(0, 5);
+  const longestLived = sortedBy("life")[0];
+  const fastestGrowing = sortedBy("growth")[0];
+  const richest = sortedBy("gdppc")[0];
 
-  const heroStats = [
-    ['People in this atlas', fmtPop(totalPop), `${share}% of the world’s 8.2 billion`],
-    ['Combined GDP', fmtMoney(totalGdp), `Current US$, ${DATA_YEAR}`],
-    ['Longest-lived', longestLived.name, fmtValue('life', longestLived.life)],
-    ['Fastest-growing economy', fastestGrowing.name, `${fmtValue('growth', fastestGrowing.growth)} GDP growth`],
-    ['Richest per person', richest.name, fmtValue('gdppc', richest.gdppc)],
-  ].map(([label, value, sub]) => stat(label, value, sub)).join('\n');
+  const heroFigures = [
+    ["People in this atlas", fmtPop(totalPop), `${share}% of the world’s 8.2 billion`],
+    ["Combined GDP", fmtMoney(totalGdp), `Current US$, ${DATA_YEAR}`],
+    ["Longest-lived", longestLived.name, fmtValue("life", longestLived.life)],
+    ["Fastest-growing economy", fastestGrowing.name, `${fmtValue("growth", fastestGrowing.growth)} GDP growth`],
+    ["Richest per person", richest.name, fmtValue("gdppc", richest.gdppc)],
+  ].map(([label, value, sub]) => figure(label, value, sub)).join("\n");
 
   return `<section class="hero">
 <h1>The world in numbers</h1>
 <p class="lede">Twelve countries, eleven headline indicators, one decade of change. Every figure comes from the World Bank’s World Development Indicators for ${DATA_YEAR}, with its source and year shown beside it.</p>
 <div class="hero-stats">
-${heroStats}
+${heroFigures}
 </div>
 </section>
 
 <section class="panel">
 <h2>Biggest populations, ${DATA_YEAR}</h2>
 ${barChart(byPop.map((c) => ({ label: c.name, value: c.pop, display: fmtPopShort(c.pop) })))}
-<p class="note">India passed China as the world’s most populous country in 2023 and keeps pulling away. ${SOURCE}</p>
+<p class="note">India passed China as the world’s most populous country in 2023 and keeps pulling away. ${SOURCE_LINE}</p>
 </section>
 
 <section class="panel">
 <h2>Biggest economies, ${DATA_YEAR}</h2>
 ${barChart(byGdp.map((c) => ({ label: c.name, value: c.gdp, display: fmtMoneyShort(c.gdp) })))}
-<p class="note">The United States is larger than the next three economies in this atlas combined. <a href="#/rankings/gdp">See the full GDP ranking &rarr;</a> ${SOURCE}</p>
+<p class="note">The United States is larger than the next three economies in this atlas combined. <a href="#/rankings/gdp">See the full GDP ranking &rarr;</a> ${SOURCE_LINE}</p>
 </section>
 
 <section class="panel">
@@ -86,7 +89,7 @@ ${barChart(byGdp.map((c) => ({ label: c.name, value: c.gdp, display: fmtMoneySho
 <label class="search-label" for="country-search">Search the twelve countries</label>
 <input id="country-search" type="search" placeholder="Type a name, region or capital&hellip;" autocomplete="off">
 <div class="country-grid" id="country-grid">
-${COUNTRIES.map(countryCard).join('\n')}
+${COUNTRIES.map(countryCard).join("\n")}
 </div>
 <p class="note" id="search-empty" hidden>No country matches that search. Try a region such as Europe or Asia.</p>
 </section>
@@ -114,23 +117,23 @@ export function country(code) {
   const others = COUNTRIES.filter((o) => o.code !== c.code).slice(0, 5);
 
   const figures = [
-    ['Population', fmtPop(c.pop), rankNote(c, 'pop', 'population')],
-    ['GDP', fmtMoney(c.gdp), rankNote(c, 'gdp', 'GDP')],
-    ['GDP per person', fmtValue('gdppc', c.gdppc), rankNote(c, 'gdppc', 'GDP per person')],
-    ['GDP growth', fmtValue('growth', c.growth), rankNote(c, 'growth', 'growth')],
-    ['Life expectancy', fmtValue('life', c.life), rankNote(c, 'life', 'life expectancy')],
-    ['Urban population', fmtValue('urban', c.urban), rankNote(c, 'urban', 'urban share')],
-    ['Unemployment', fmtValue('unemp', c.unemp), rankNote(c, 'unemp', 'unemployment')],
-    ['Fertility rate', fmtValue('fert', c.fert), rankNote(c, 'fert', 'fertility')],
-    ['Internet users', fmtValue('internet', c.internet), rankNote(c, 'internet', 'internet use')],
-    ['Aged 65 and over', fmtValue('age65', c.age65), rankNote(c, 'age65', 'share aged 65+')],
-  ].map(([label, value, sub]) => stat(label, value, sub)).join('\n');
+    ["Population", fmtPop(c.pop), rankText(c, "pop", "population")],
+    ["GDP", fmtMoney(c.gdp), rankText(c, "gdp", "GDP")],
+    ["GDP per person", fmtValue("gdppc", c.gdppc), rankText(c, "gdppc", "GDP per person")],
+    ["GDP growth", fmtValue("growth", c.growth), rankText(c, "growth", "growth")],
+    ["Life expectancy", fmtValue("life", c.life), rankText(c, "life", "life expectancy")],
+    ["Urban population", fmtValue("urban", c.urban), rankText(c, "urban", "urban share")],
+    ["Unemployment", fmtValue("unemp", c.unemp), rankText(c, "unemp", "unemployment")],
+    ["Fertility rate", fmtValue("fert", c.fert), rankText(c, "fert", "fertility")],
+    ["Internet users", fmtValue("internet", c.internet), rankText(c, "internet", "internet use")],
+    ["Aged 65 and over", fmtValue("age65", c.age65), rankText(c, "age65", "share aged 65+")],
+  ].map(([label, value, sub]) => figure(label, value, sub)).join("\n");
 
   return `<p class="crumbs"><a href="#/">&larr; All countries</a> &middot; <a href="#/rankings/pop">Rankings</a> &middot; <a href="#/compare/${c.code}">Compare ${escapeHtml(c.name)}</a></p>
 <header class="country-head">
 <h1>${escapeHtml(c.name)}</h1>
 <p class="lede">${escapeHtml(c.blurb)}</p>
-<p class="facts"><strong>Capital:</strong> ${escapeHtml(c.capital)} &middot; <strong>Region:</strong> ${escapeHtml(c.region)} &middot; <strong>Currency:</strong> ${escapeHtml(c.currency)} &middot; <strong>Land area:</strong> ${fmtValue('area', c.area)} &middot; <strong>Density:</strong> ${fmtInt(density(c))} people per km&sup2;</p>
+<p class="facts"><strong>Capital:</strong> ${escapeHtml(c.capital)} &middot; <strong>Region:</strong> ${escapeHtml(c.region)} &middot; <strong>Currency:</strong> ${escapeHtml(c.currency)} &middot; <strong>Land area:</strong> ${fmtValue("area", c.area)} &middot; <strong>Density:</strong> ${fmtInt(density(c))} people per km&sup2;</p>
 </header>
 
 <section class="panel">
@@ -138,26 +141,26 @@ export function country(code) {
 <div class="stat-grid">
 ${figures}
 </div>
-<p class="note">${SOURCE} Ranks are among the twelve countries in this atlas.</p>
+<p class="note">${SOURCE_LINE} Ranks are among the twelve countries in this atlas.</p>
 </section>
 
 <section class="panel">
 <h2>Population, 2015&ndash;${DATA_YEAR}</h2>
-${lineChart(c.popSeries, { color: '#0b5cad', unit: 'M' })}
-<p class="note">${escapeHtml(c.name)}’s population ${popGrew ? 'grew' : 'fell'} ${Math.abs(popChange)}% over the decade, from ${c.popSeries[0].toFixed(1)} million in 2015 to ${c.popSeries[9].toFixed(1)} million in ${DATA_YEAR}. ${SOURCE}</p>
+${lineChart(c.popSeries, { color: "#0b5cad", unit: "M" })}
+<p class="note">${escapeHtml(c.name)}’s population ${popGrew ? "grew" : "fell"} ${Math.abs(popChange)}% over the decade, from ${c.popSeries[0].toFixed(1)} million in 2015 to ${c.popSeries[9].toFixed(1)} million in ${DATA_YEAR}. ${SOURCE_LINE}</p>
 </section>
 
 <section class="panel">
 <h2>GDP, 2015&ndash;${DATA_YEAR} (US$ billions)</h2>
-${lineChart(c.gdpSeries, { color: '#0e7a5f', unit: '' })}
-<p class="note">GDP ${gdpGrew ? 'rose' : 'fell'} ${Math.abs(gdpChange)}% in current dollars over the decade, from $${fmtInt(c.gdpSeries[0])} billion in 2015 to $${fmtInt(c.gdpSeries[9])} billion in ${DATA_YEAR}. The 2020 dip is the pandemic year. ${SOURCE}</p>
+${lineChart(c.gdpSeries, { color: "#0e7a5f", unit: "" })}
+<p class="note">GDP ${gdpGrew ? "rose" : "fell"} ${Math.abs(gdpChange)}% in current dollars over the decade, from $${fmtInt(c.gdpSeries[0])} billion in 2015 to $${fmtInt(c.gdpSeries[9])} billion in ${DATA_YEAR}. The 2020 dip is the pandemic year. ${SOURCE_LINE}</p>
 </section>
 
 <section class="panel">
 <h2>Keep exploring</h2>
 <p>Compare ${escapeHtml(c.name)} with two others on every indicator: <a href="#/compare/${c.code}">open the comparison tool &rarr;</a></p>
 <p>Or browse another country:</p>
-<ul class="inline-links">${others.map((o) => `<li><a href="#/country/${o.code}">${escapeHtml(o.name)}</a></li>`).join('')}</ul>
+<ul class="inline-links">${others.map((o) => `<li><a href="#/country/${o.code}">${escapeHtml(o.name)}</a></li>`).join("")}</ul>
 </section>`;
 }
 
@@ -165,8 +168,8 @@ ${lineChart(c.gdpSeries, { color: '#0e7a5f', unit: '' })}
 
 function picker(id, selected, label) {
   const options = COUNTRIES.map(
-    (c) => `<option value="${c.code}"${c.code === selected ? ' selected' : ''}>${escapeHtml(c.name)}</option>`,
-  ).join('');
+    (c) => `<option value="${c.code}"${c.code === selected ? " selected" : ""}>${escapeHtml(c.name)}</option>`,
+  ).join("");
   return `<label class="picker"><span>${escapeHtml(label)}</span><select id="${id}">${options}</select></label>`;
 }
 
@@ -179,36 +182,37 @@ export function compare(codes) {
   while (picked.length < 3) picked.push(COUNTRIES.find((c) => !picked.includes(c)));
   const [a, b, c] = picked;
 
-  const glance = [
-    { label: 'Population', key: 'pop', short: true },
-    { label: 'GDP', key: 'gdp', short: true },
-    { label: 'GDP per person', key: 'gdppc', short: true },
-    { label: 'Life expectancy', key: 'life', short: false },
-  ].map((g) => ({
+  const glanceDefs = [
+    { label: "Population", key: "pop", short: true },
+    { label: "GDP", key: "gdp", short: true },
+    { label: "GDP per person", key: "gdppc", short: true },
+    { label: "Life expectancy", key: "life", short: false },
+  ];
+  const glance = glanceDefs.map((g) => ({
     label: g.label,
     values: picked.map((country) => ({
       name: country.name,
       value: country[g.key],
-      display: g.short ? chartValue(g.key, country[g.key]) : fmtValue(g.key, country[g.key]),
+      display: g.short ? shortValue(g.key, country[g.key]) : fmtValue(g.key, country[g.key]),
     })),
   }));
 
-  const keys = ['pop', 'gdp', 'gdppc', 'growth', 'life', 'urban', 'unemp', 'fert', 'internet', 'age65', 'area'];
+  const keys = ["pop", "gdp", "gdppc", "growth", "life", "urban", "unemp", "fert", "internet", "age65", "area"];
   const rows = keys.map((key) => {
     const ind = INDICATORS.find((i) => i.key === key);
-    const cells = picked.map((country) => `<td>${fmtValue(key, country[key])}</td>`).join('');
+    const cells = picked.map((country) => `<td>${fmtValue(key, country[key])}</td>`).join("");
     const best = picked.reduce((top, country) => (country[key] > top[key] ? country : top), picked[0]);
-    const marks = picked.map((country) => `<td>${country.code === best.code ? '<strong>Highest</strong>' : '&mdash;'}</td>`).join('');
+    const marks = picked.map((country) => `<td>${country.code === best.code ? "<strong>Highest</strong>" : "&mdash;"}</td>`).join("");
     return `<tr><th scope="row">${escapeHtml(ind.label)} <span class="unit">(${escapeHtml(ind.unit)})</span></th>${cells}</tr>\n<tr class="best-row"><th scope="row"><span class="unit">Highest of the three</span></th>${marks}</tr>`;
-  }).join('\n');
+  }).join("\n");
 
   return `<h1>Compare countries</h1>
 <p class="lede">Pick any three countries and put their headline figures side by side. Bars are scaled within each indicator, so unlike units never mix.</p>
 <section class="panel">
 <div class="pickers" id="pickers">
-${picker('pick-a', a.code, 'First country')}
-${picker('pick-b', b.code, 'Second country')}
-${picker('pick-c', c.code, 'Third country')}
+${picker("pick-a", a.code, "First country")}
+${picker("pick-b", b.code, "Second country")}
+${picker("pick-c", c.code, "Third country")}
 </div>
 <p class="note">Changing a picker reloads the comparison. <a href="#/country/${a.code}">Profile: ${escapeHtml(a.name)}</a> &middot; <a href="#/country/${b.code}">${escapeHtml(b.name)}</a> &middot; <a href="#/country/${c.code}">${escapeHtml(c.name)}</a></p>
 </section>
@@ -219,10 +223,10 @@ ${groupedBars(glance)}
 <section class="panel">
 <h2>Every headline figure</h2>
 <table class="compare-table">
-<thead><tr><th scope="col">Indicator</th>${picked.map((country) => `<th scope="col"><a href="#/country/${country.code}">${escapeHtml(country.name)}</a></th>`).join('')}</tr></thead>
+<thead><tr><th scope="col">Indicator</th>${picked.map((country) => `<th scope="col"><a href="#/country/${country.code}">${escapeHtml(country.name)}</a></th>`).join("")}</tr></thead>
 <tbody>${rows}</tbody>
 </table>
-<p class="note">${SOURCE} Density and ranks are on each country’s profile page.</p>
+<p class="note">${SOURCE_LINE} Density and ranks are on each country’s profile page.</p>
 </section>`;
 }
 
@@ -233,11 +237,11 @@ export function rankings(key) {
   const rows = sortedBy(ind.key);
   const leader = rows[0][ind.key];
   const pills = INDICATORS.map(
-    (i) => `<li><a href="#/rankings/${i.key}"${i.key === ind.key ? ' class="active" aria-current="true"' : ''}>${escapeHtml(i.label)}</a></li>`,
-  ).join('');
+    (i) => `<li><a href="#/rankings/${i.key}"${i.key === ind.key ? ' class="active" aria-current="true"' : ""}>${escapeHtml(i.label)}</a></li>`,
+  ).join("");
   const tableRows = rows.map((c, i) =>
     `<tr><td>${i + 1}</td><td><a href="#/country/${c.code}">${escapeHtml(c.name)}</a></td><td>${fmtValue(ind.key, c[ind.key])}</td><td class="bar-cell"><span class="mini-bar" style="width:${((c[ind.key] / leader) * 100).toFixed(1)}%"></span></td></tr>`,
-  ).join('\n');
+  ).join("\n");
   return `<h1>Rankings</h1>
 <p class="lede">All twelve countries, ordered by one indicator at a time. Pick an indicator to re-rank the table.</p>
 <ul class="pills">${pills}</ul>
@@ -248,7 +252,7 @@ export function rankings(key) {
 <thead><tr><th scope="col">Rank</th><th scope="col">Country</th><th scope="col">Value</th><th scope="col"><span class="visually-hidden">Share of the leader</span></th></tr></thead>
 <tbody>${tableRows}</tbody>
 </table>
-<p class="note">${SOURCE} World Bank code ${escapeHtml(ind.code)}. Rankings cover only the twelve countries in this atlas, not the whole world.</p>
+<p class="note">${SOURCE_LINE} World Bank code ${escapeHtml(ind.code)}. Rankings cover only the twelve countries in this atlas, not the whole world.</p>
 </section>`;
 }
 
@@ -262,7 +266,7 @@ export function indicators() {
 <p>${escapeHtml(i.about)}</p>
 <p><a href="#/rankings/${i.key}">Rank the twelve countries by ${escapeHtml(i.label.toLowerCase())} &rarr;</a></p>
 </article>`,
-  ).join('\n');
+  ).join("\n");
   return `<h1>Indicators, explained</h1>
 <p class="lede">Eleven headline indicators, each with what it measures, how it is counted, and its World Bank code so you can check the original series. All figures in this atlas are the ${DATA_YEAR} values of these series.</p>
 <div class="indicator-grid">${cards}</div>

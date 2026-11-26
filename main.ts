@@ -14,13 +14,13 @@
 // MAKEFUN_OUTPUT_DIR stands in for /output:
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 
-import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { buildDossier } from './vendor/makefun-frontend.ts';
+import { cpSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { buildDossier } from "./vendor/makefun-frontend.ts";
 
-const here = fileURLToPath(new URL('.', import.meta.url));
-const out = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
+const here = fileURLToPath(new URL(".", import.meta.url));
+const out = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
 
 function copyTree(name) {
   const from = join(here, name);
@@ -29,9 +29,9 @@ function copyTree(name) {
 }
 
 mkdirSync(out, { recursive: true });
-copyTree('app');
-mkdirSync(join(out, 'screenshots'), { recursive: true });
-copyTree('screenshots');
+copyTree("app");
+mkdirSync(join(out, "screenshots"), { recursive: true });
+copyTree("screenshots");
 
 // The scorer's own caps (reference/gate.json): only text_max_bytes shapes
 // the bytes; the others refuse an entry the scorer would refuse (more than 4
@@ -45,4 +45,4 @@ const DOSSIER_OPTIONS = {
   app_max_bytes: 16777216,
 };
 
-writeFileSync(join(out, 'dossier.json'), buildDossier(out, DOSSIER_OPTIONS));
+writeFileSync(join(out, "dossier.json"), buildDossier(out, DOSSIER_OPTIONS));

@@ -1,61 +1,58 @@
-// How numbers read on the site: short human forms for headlines and chart
-// labels, full forms for tables, and one formatter per indicator so every
-// figure of the same kind is written the same way everywhere.
+// Number formatting for NationScope: short human forms for headlines and
+// chart labels, full forms for tables, and one formatter per indicator so a
+// figure of the same kind is always written the same way.
 
-const GROUPED = new Intl.NumberFormat('en-US');
+const grouped = new Intl.NumberFormat("en-US");
 
-// A whole number with thousands separators: 1450935791 -> 1,450,935,791.
+// Whole number with thousands separators: 1450935791 -> 1,450,935,791.
 export function fmtInt(n) {
-  return GROUPED.format(Math.round(n));
+  return grouped.format(Math.round(n));
 }
 
-// Scale a big number down to trillions / billions / millions, keeping the
-// suffix the caller asked for. Returns [scaled value, suffix] or null when
-// the number is too small to scale.
-function scaled(n, steps) {
-  for (const [atLeast, divisor, suffix] of steps) {
-    if (n >= atLeast) return [n / divisor, suffix];
+// Pick the largest scale in `steps` the number reaches. Each step is
+// [threshold, divisor, suffix]. Returns { value, suffix } or null.
+function pickScale(n, steps) {
+  for (const step of steps) {
+    if (n >= step[0]) return { value: n / step[1], suffix: step[2] };
   }
   return null;
 }
 
-export function fmtMoney(n) {
-  const s = scaled(n, [[1e12, 1e12, ' trillion'], [1e9, 1e9, ' billion'], [1e6, 1e6, ' million']]);
+function moneyLong(n) {
+  const s = pickScale(n, [[1e12, 1e12, " trillion"], [1e9, 1e9, " billion"], [1e6, 1e6, " million"]]);
   if (!s) return `$${fmtInt(n)}`;
-  const [v, suffix] = s;
-  return `$${v.toFixed(suffix === ' trillion' ? 2 : 1)}${suffix}`;
+  return `$${s.value.toFixed(s.suffix === " trillion" ? 2 : 1)}${s.suffix}`;
 }
 
-export function fmtMoneyShort(n) {
-  const s = scaled(n, [[1e12, 1e12, 'T'], [1e9, 1e9, 'B']]);
+function moneyShort(n) {
+  const s = pickScale(n, [[1e12, 1e12, "T"], [1e9, 1e9, "B"]]);
   if (!s) return `$${fmtInt(n)}`;
-  const [v, suffix] = s;
-  return `$${v.toFixed(suffix === 'T' ? 2 : 0)}${suffix}`;
+  return `$${s.value.toFixed(s.suffix === "T" ? 2 : 0)}${s.suffix}`;
 }
 
-export function fmtPop(n) {
-  const s = scaled(n, [[1e9, 1e9, ' billion'], [1e6, 1e6, ' million']]);
+function popLong(n) {
+  const s = pickScale(n, [[1e9, 1e9, " billion"], [1e6, 1e6, " million"]]);
   if (!s) return fmtInt(n);
-  const [v, suffix] = s;
-  return `${v.toFixed(suffix === ' billion' ? 2 : 1)}${suffix}`;
+  return `${s.value.toFixed(s.suffix === " billion" ? 2 : 1)}${s.suffix}`;
 }
 
-export function fmtPopShort(n) {
-  const s = scaled(n, [[1e9, 1e9, 'B'], [1e6, 1e6, 'M']]);
+function popShort(n) {
+  const s = pickScale(n, [[1e9, 1e9, "B"], [1e6, 1e6, "M"]]);
   if (!s) return fmtInt(n);
-  const [v, suffix] = s;
-  return `${v.toFixed(suffix === 'B' ? 2 : 0)}${suffix}`;
+  return `${s.value.toFixed(s.suffix === "B" ? 2 : 0)}${s.suffix}`;
 }
+
+export { moneyLong as fmtMoney, moneyShort as fmtMoneyShort, popLong as fmtPop, popShort as fmtPopShort };
 
 // A signed percentage with one decimal: 7.1 -> +7.1%, -0.5 -> -0.5%.
 export function fmtSigned(n, decimals = 1) {
-  return `${n > 0 ? '+' : ''}${n.toFixed(decimals)}%`;
+  return `${n > 0 ? "+" : ""}${n.toFixed(decimals)}%`;
 }
 
 // One indicator's value, written the way its page shows it.
-const VALUE_FORMATS = {
-  pop: (v) => fmtPop(v),
-  gdp: (v) => fmtMoney(v),
+const BY_INDICATOR = {
+  pop: (v) => popLong(v),
+  gdp: (v) => moneyLong(v),
   gdppc: (v) => `$${fmtInt(v)}`,
   growth: (v) => fmtSigned(v),
   life: (v) => `${v.toFixed(1)} years`,
@@ -68,7 +65,7 @@ const VALUE_FORMATS = {
 };
 
 export function fmtValue(key, value) {
-  const fn = VALUE_FORMATS[key];
+  const fn = BY_INDICATOR[key];
   return fn ? fn(value) : String(value);
 }
 
