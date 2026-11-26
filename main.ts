@@ -2,7 +2,7 @@
 // writes the dossier buildDossier produces from them, byte for byte.
 // Runs on Node 22 with the standard library only, no network, no install.
 // The output directory is /output, or MAKEFUN_OUTPUT_DIR when that is set.
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildDossier } from "./vendor/makefun-frontend.ts";
@@ -27,9 +27,13 @@ function copyTree(source, target) {
 }
 
 // Hand the site in: a clean output directory, the site's files, then the dossier.
+// The output directory itself is a mount point in the grader, so only its
+// contents are cleared — removing the directory itself fails there.
 function main() {
-  rmSync(OUTPUT_DIR, { recursive: true, force: true });
   mkdirSync(OUTPUT_DIR, { recursive: true });
+  for (const entry of readdirSync(OUTPUT_DIR)) {
+    rmSync(join(OUTPUT_DIR, entry), { recursive: true, force: true });
+  }
   copyTree(join(REPO_ROOT, "app"), join(OUTPUT_DIR, "app"));
   copyTree(join(REPO_ROOT, "screenshots"), join(OUTPUT_DIR, "screenshots"));
   const dossier = buildDossier(OUTPUT_DIR, DOSSIER_CAPS);
