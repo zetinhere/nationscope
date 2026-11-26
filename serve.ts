@@ -1,73 +1,39 @@
-// A tiny static server for looking at app/ while building: `node serve.ts`
-// serves it at http://localhost:8080 (`--port` for another port). It serves
-// files only from app/ and nothing else — a request that escapes the folder
-// gets a 403, a missing file a 404.
-
-import { createReadStream, statSync } from "node:fs";
+// Tiny static server for NationScope: serves app/ at its root for local checks
+// and screenshots. Usage: node serve.ts [--port 8080]
 import { createServer } from "node:http";
-import { extname, join, normalize, resolve, sep } from "node:path";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const ROOT = resolve(fileURLToPath(new URL("./app", import.meta.url)));
+const APP_DIR = join(fileURLToPath(new URL(".", import.meta.url)), "app");
+const PORT = Number(process.argv.find((arg) => arg.startsWith("--port="))?.split("=")[1]
+  || process.argv[process.argv.indexOf("--port") + 1]
+  || 8080);
 
-const TYPES = new Map([
-  [".html", "text/html; charset=utf-8"],
-  [".js", "text/javascript; charset=utf-8"],
-  [".mjs", "text/javascript; charset=utf-8"],
-  [".css", "text/css; charset=utf-8"],
-  [".json", "application/json; charset=utf-8"],
-  [".svg", "image/svg+xml"],
-  [".png", "image/png"],
-  [".jpg", "image/jpeg"],
-  [".jpeg", "image/jpeg"],
-  [".webp", "image/webp"],
-  [".ico", "image/x-icon"],
-  [".woff2", "font/woff2"],
-  [".webmanifest", "application/manifest+json"],
-]);
+const TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".svg": "image/svg+xml",
+};
 
-function pickPort() {
-  const i = process.argv.indexOf("--port");
-  const wanted = i === -1 ? 8080 : Number(process.argv[i + 1]);
-  return Number.isInteger(wanted) && wanted > 0 && wanted < 65536 ? wanted : 8080;
-}
-
-function resolveInside(pathname) {
-  const decoded = decodeURIComponent(pathname);
-  const withIndex = decoded.endsWith("/") ? `${decoded}index.html` : decoded;
-  const file = resolve(join(ROOT, normalize(withIndex)));
-  if (file !== ROOT && !file.startsWith(ROOT + sep)) return null;
-  return file;
-}
-
-createServer((request, response) => {
-  const url = new URL(request.url ?? "/", "http://localhost");
-  let file;
-  try {
-    file = resolveInside(url.pathname);
-  } catch {
-    response.writeHead(400).end("bad request");
+const server = createServer((req, res) => {
+  const rawPath = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
+  const safePath = normalize(rawPath).replace(/^(\.\.[/\\])+/, "");
+  const filePath = join(APP_DIR, safePath === "/" ? "index.html" : safePath);
+  if (!filePath.startsWith(APP_DIR) || !existsSync(filePath) || !statSync(filePath).isFile()) {
+    res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+    res.end("not found");
     return;
   }
-  if (!file) {
-    response.writeHead(403).end("forbidden");
-    return;
-  }
-  let size;
-  try {
-    const stats = statSync(file);
-    if (!stats.isFile()) throw new Error("not a file");
-    size = stats.size;
-  } catch {
-    response.writeHead(404).end("not found");
-    return;
-  }
-  response.writeHead(200, {
-    "content-type": TYPES.get(extname(file).toLowerCase()) ?? "application/octet-stream",
-    "content-length": size,
-    "cache-control": "no-store",
-  });
-  createReadStream(file).pipe(response);
-}).listen(pickPort(), "127.0.0.1", () => {
-  console.log(`app/ is on http://localhost:${pickPort()}`);
+  res.writeHead(200, { "content-type": TYPES[extname(filePath)] || "application/octet-stream" });
+  res.end(readFileSync(filePath));
+});
+
+server.listen(PORT, () => {
+  console.log(`NationScope serving app/ at http://localhost:${PORT}/`);
 });

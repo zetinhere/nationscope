@@ -1,173 +1,121 @@
-// NationScope data: twelve countries, eleven World Bank indicators.
-//
-// Every headline figure is the World Bank's World Development Indicators
-// value for 2024, pulled on 26 November 2026. The decade series cover
-// 2015-2024: population in millions of people, GDP in billions of current
-// US dollars. Headline population is people; headline GDP is current US
-// dollars.
-//
-// Series used: SP.POP.TOTL, NY.GDP.MKTP.CD, NY.GDP.PCAP.CD,
-// NY.GDP.MKTP.KD.ZG, SP.DYN.LE00.IN, SP.URB.TOTL.IN.ZS, SL.UEM.TOTL.ZS,
-// SP.DYN.TFRT.IN, IT.NET.USER.ZS, SP.POP.65UP.TO.ZS, AG.SRF.TOTL.K2.
-// World population in 2024 is about 8.2 billion (UN World Population
-// Prospects 2024).
+// NationScope data — World Bank World Development Indicators.
+// Every figure below was pulled from api.worldbank.org on 26 November 2026.
+// Each value carries the year it belongs to (2024 unless noted); a null means
+// the World Bank reports no value for that country and indicator.
+export const SOURCE_NAME = "World Bank, World Development Indicators";
+export const DATA_FETCHED = "26 November 2026";
+export const SERIES_YEARS = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024];
 
-export const DATA_YEAR = 2024;
-export const WORLD_POPULATION_2024 = 8200000000;
+export const INDICATORS = [
+  { id: "pop", label: "Population", unit: "people", code: "SP.POP.TOTL", kind: "count",
+    blurb: "Everyone counted as usually resident in the country, mid-year estimate." },
+  { id: "gdp", label: "GDP", unit: "current US$", code: "NY.GDP.MKTP.CD", kind: "money",
+    blurb: "The market value of everything produced in a year, in current US dollars." },
+  { id: "gdpcap", label: "GDP per capita", unit: "current US$", code: "NY.GDP.PCAP.CD", kind: "money",
+    blurb: "GDP divided by mid-year population — the average output per person." },
+  { id: "gdpgrow", label: "GDP growth", unit: "% per year", code: "NY.GDP.MKTP.KD.ZG", kind: "percent",
+    blurb: "How much real GDP grew or shrank compared with the previous year." },
+  { id: "infl", label: "Inflation", unit: "% per year", code: "FP.CPI.TOTL.ZG", kind: "percent",
+    blurb: "How fast consumer prices rose, measured by the consumer price index." },
+  { id: "unemp", label: "Unemployment", unit: "% of labour force", code: "SL.UEM.TOTL.ZS", kind: "percent",
+    blurb: "The share of the labour force without work but available and looking for it (ILO modelled estimate)." },
+  { id: "lifeexp", label: "Life expectancy", unit: "years", code: "SP.DYN.LE00.IN", kind: "years",
+    blurb: "How long a newborn could expect to live if today's death rates stayed the same." },
+  { id: "exports", label: "Exports", unit: "% of GDP", code: "NE.EXP.GNFS.ZS", kind: "percent",
+    blurb: "Goods and services sold abroad, as a share of the whole economy." },
+  { id: "internet", label: "Internet users", unit: "% of population", code: "IT.NET.USER.ZS", kind: "percent",
+    blurb: "People who used the internet in the last three months, as a share of everyone." },
+  { id: "forest", label: "Forest area", unit: "% of land area", code: "AG.LND.FRST.ZS", kind: "percent",
+    blurb: "Land covered by forest, as a share of the country's total land area." },
+  { id: "eduspend", label: "Education spending", unit: "% of GDP", code: "SE.XPD.TOTL.GD.ZS", kind: "percent",
+    blurb: "What government spends on education, as a share of the whole economy. Latest year reported varies by country." },
+];
 
 export const COUNTRIES = [
-  {
-    code: "IN", name: "India", region: "South Asia", capital: "New Delhi",
-    currency: "Indian rupee (INR)",
-    blurb: "The world’s most populous country since 2023, and its fastest-growing large economy in 2024.",
-    pop: 1450935791, gdp: 3760813470501, gdppc: 2592, life: 72.2, urban: 35.4,
-    unemp: 4.2, fert: 1.96, internet: 64.9, area: 3287263, age65: 7.2, growth: 7.1,
-    popSeries: [1328.0, 1343.9, 1359.7, 1374.7, 1389.0, 1402.6, 1414.2, 1425.4, 1438.1, 1450.9],
-    gdpSeries: [2104, 2295, 2651, 2703, 2836, 2675, 3167, 3250, 3501, 3761],
-  },
-  {
-    code: "CN", name: "China", region: "East Asia", capital: "Beijing",
-    currency: "Chinese yuan (CNY)",
-    blurb: "The world’s second-largest economy and its biggest manufacturer, with a population that has begun to shrink.",
-    pop: 1408975000, gdp: 18729668435848, gdppc: 13293, life: 78.0, urban: 65.9,
-    unemp: 4.6, fert: 1.01, internet: 92.0, area: 9562910, age65: 14.7, growth: 5.0,
-    popSeries: [1380.0, 1387.8, 1396.2, 1402.8, 1407.7, 1411.1, 1412.4, 1412.2, 1410.7, 1409.0],
-    gdpSeries: [11281, 11456, 12538, 14148, 14560, 14996, 18202, 18317, 18270, 18730],
-  },
-  {
-    code: "US", name: "United States", region: "North America", capital: "Washington, D.C.",
-    currency: "US dollar (USD)",
-    blurb: "The world’s largest economy by a wide margin, and the richest large country per person in this atlas.",
-    pop: 340003797, gdp: 29298013000000, gdppc: 86170, life: 78.9, urban: 80.1,
-    unemp: 4.0, fert: 1.63, internet: 94.7, area: 9831510, age65: 17.9, growth: 2.8,
-    popSeries: [321.8, 324.4, 326.6, 328.5, 330.2, 331.6, 332.1, 334.0, 336.8, 340.0],
-    gdpSeries: [18295, 18805, 19612, 20657, 21540, 21375, 23726, 26055, 27812, 29298],
-  },
-  {
-    code: "ID", name: "Indonesia", region: "Southeast Asia", capital: "Jakarta",
-    currency: "Indonesian rupiah (IDR)",
-    blurb: "The world’s fourth-largest country by people and its largest island nation, growing at about 5% a year.",
-    pop: 283487931, gdp: 1396301788462, gdppc: 4925, life: 71.3, urban: 58.8,
-    unemp: 3.3, fert: 2.12, internet: 72.8, area: 1916907, age65: 7.3, growth: 5.0,
-    popSeries: [261.8, 264.6, 267.3, 270.0, 272.5, 274.8, 276.8, 278.8, 281.2, 283.5],
-    gdpSeries: [861, 932, 1016, 1042, 1119, 1059, 1187, 1319, 1371, 1396],
-  },
-  {
-    code: "BR", name: "Brazil", region: "South America", capital: "Brasília",
-    currency: "Brazilian real (BRL)",
-    blurb: "South America’s giant: the most urbanised country in this atlas after Japan, and a farming and energy exporter.",
-    pop: 211998573, gdp: 2185821610689, gdppc: 10311, life: 76.0, urban: 87.9,
-    unemp: 6.8, fert: 1.61, internet: 84.5, area: 8510420, age65: 11.1, growth: 3.4,
-    popSeries: [201.7, 203.2, 204.7, 206.1, 207.5, 208.7, 209.6, 210.3, 211.1, 212.0],
-    gdpSeries: [1802, 1796, 2064, 1917, 1873, 1476, 1671, 1952, 2191, 2186],
-  },
-  {
-    code: "JP", name: "Japan", region: "East Asia", capital: "Tokyo",
-    currency: "Japanese yen (JPY)",
-    blurb: "The longest-lived people on earth and the oldest population in this atlas: nearly 3 in 10 residents are 65 or older.",
-    pop: 123975371, gdp: 4190008188359, gdppc: 33797, life: 84.0, urban: 92.2,
-    unemp: 2.5, fert: 1.15, internet: 85.5, area: 377975, age65: 29.8, growth: -0.2,
-    popSeries: [127.1, 127.1, 127.0, 126.8, 126.6, 126.3, 125.7, 125.1, 124.5, 124.0],
-    gdpSeries: [4534, 5110, 5038, 5154, 5246, 5189, 5226, 4448, 4385, 4190],
-  },
-  {
-    code: "DE", name: "Germany", region: "Western Europe", capital: "Berlin",
-    currency: "Euro (EUR)",
-    blurb: "Europe’s largest economy, built on manufacturing and exports, with one of the world’s oldest populations.",
-    pop: 83516593, gdp: 4685592577805, gdppc: 56104, life: 80.8, urban: 82.0,
-    unemp: 3.4, fert: 1.36, internet: 93.5, area: 357680, age65: 23.2, growth: -0.5,
-    popSeries: [81.7, 82.3, 82.7, 82.9, 83.1, 83.2, 83.2, 83.2, 83.3, 83.5],
-    gdpSeries: [3425, 3537, 3765, 4055, 3960, 3941, 4355, 4201, 4562, 4686],
-  },
-  {
-    code: "GB", name: "United Kingdom", region: "Northern Europe", capital: "London",
-    currency: "Pound sterling (GBP)",
-    blurb: "A services-led economy centred on London, with the highest internet use in this atlas after South Korea.",
-    pop: 69281000, gdp: 3695539513534, gdppc: 53341, life: 81.4, urban: 83.2,
-    unemp: 4.4, fert: 1.55, internet: 95.5, area: 243610, age65: 19.5, growth: 1.1,
-    popSeries: [65.1, 65.6, 66.0, 66.3, 66.6, 66.7, 67.0, 67.6, 68.5, 69.3],
-    gdpSeries: [2946, 2707, 2699, 2897, 2876, 2724, 3195, 3181, 3421, 3696],
-  },
-  {
-    code: "FR", name: "France", region: "Western Europe", capital: "Paris",
-    currency: "Euro (EUR)",
-    blurb: "Europe’s second-largest economy, with the highest fertility in Western Europe and a long-lived population.",
-    pop: 68551653, gdp: 3160442622465, gdppc: 46103, life: 83.0, urban: 78.8,
-    unemp: 7.4, fert: 1.61, internet: 88.7, area: 606410, age65: 22.2, growth: 1.2,
-    popSeries: [66.5, 66.7, 66.9, 67.2, 67.4, 67.6, 67.8, 68.2, 68.4, 68.6],
-    gdpSeries: [2442, 2470, 2589, 2782, 2723, 2648, 2966, 2795, 3056, 3160],
-  },
-  {
-    code: "KR", name: "South Korea", region: "East Asia", capital: "Seoul",
-    currency: "South Korean won (KRW)",
-    blurb: "The most connected country in this atlas and the lowest fertility on earth: 0.75 children per woman in 2024.",
-    pop: 51751065, gdp: 1875388209407, gdppc: 36239, life: 83.6, urban: 81.2,
-    unemp: 2.8, fert: 0.75, internet: 97.9, area: 100460, age65: 19.3, growth: 2.0,
-    popSeries: [51.0, 51.2, 51.4, 51.6, 51.8, 51.8, 51.8, 51.7, 51.7, 51.8],
-    gdpSeries: [1539, 1579, 1710, 1824, 1751, 1744, 1942, 1799, 1845, 1875],
-  },
-  {
-    code: "AU", name: "Australia", region: "Oceania", capital: "Canberra",
-    currency: "Australian dollar (AUD)",
-    blurb: "A continent-sized country with only 27 million people, and the second-highest income per person in this atlas.",
-    pop: 27194286, gdp: 1757022451653, gdppc: 64610, life: 83.1, urban: 87.6,
-    unemp: 3.9, fert: 1.48, internet: 96.1, area: 7741220, age65: 17.7, growth: 1.4,
-    popSeries: [23.8, 24.2, 24.6, 25.0, 25.3, 25.6, 25.7, 26.0, 26.7, 27.2],
-    gdpSeries: [1357, 1212, 1331, 1433, 1398, 1333, 1561, 1696, 1734, 1757],
-  },
-  {
-    code: "NG", name: "Nigeria", region: "West Africa", capital: "Abuja",
-    currency: "Nigerian naira (NGN)",
-    blurb: "Africa’s most populous country and its youngest: the highest fertility and the lowest life expectancy in this atlas.",
-    pop: 232679478, gdp: 252261880140, gdppc: 1084, life: 54.6, urban: 63.0,
-    unemp: 3.0, fert: 4.38, internet: 41.2, area: 923768, age65: 3.1, growth: 4.1,
-    popSeries: [190.7, 195.4, 200.3, 204.9, 209.5, 214.0, 218.5, 223.2, 227.9, 232.7],
-    gdpSeries: [493, 405, 376, 422, 668, 599, 609, 647, 487, 252],
-  },
+  { code: "IN", name: "India", region: "South Asia",
+    v: { pop: 1450935791, gdp: 3760813470501, gdpcap: 2591.99, gdpgrow: 7.1, infl: 4.95, unemp: 4.17, lifeexp: 72.24, exports: 22.06, internet: 64.94, forest: 24.44, eduspend: 4.1 },
+    y: { pop: 2024, gdp: 2024, gdpcap: 2024, gdpgrow: 2024, infl: 2024, unemp: 2024, lifeexp: 2024, exports: 2024, internet: 2024, forest: 2024, eduspend: 2022 },
+    popSeries: [1328024498, 1343944296, 1359657400, 1374659064, 1389030312, 1402617695, 1414203896, 1425423212, 1438069596, 1450935791],
+    gdpSeries: [2103588360045, 2294796885663, 2651474262755, 2702929641649, 2835606256558, 2674851578587, 3167270623260, 3249938492013, 3500906030645, 3760813470501] },
+  { code: "CN", name: "China", region: "East Asia",
+    v: { pop: 1408975000, gdp: 18729668435848, gdpcap: 13293.12, gdpgrow: 4.96, infl: 0.22, unemp: 4.59, lifeexp: 78.02, exports: 20.44, internet: 92, forest: 24.02, eduspend: 3.9 },
+    y: { pop: 2024, gdp: 2024, gdpcap: 2024, gdpgrow: 2024, infl: 2024, unemp: 2024, lifeexp: 2024, exports: 2024, internet: 2024, forest: 2024, eduspend: 2023 },
+    popSeries: [1379860000, 1387790000, 1396215000, 1402760000, 1407745000, 1411100000, 1412360000, 1412175000, 1410710000, 1408975000],
+    gdpSeries: [11280814787469, 11456024084962, 12537559062283, 14147765772964, 14560167101283, 14996414166715, 18201698719564, 18316765021690, 18270356654533, 18729668435848] },
+  { code: "US", name: "United States", region: "North America",
+    v: { pop: 340003797, gdp: 29298013000000, gdpcap: 86169.66, gdpgrow: 2.79, infl: 2.95, unemp: 4.02, lifeexp: 78.89, exports: 10.97, internet: 94.69, forest: 33.78, eduspend: 5.42 },
+    y: { pop: 2024, gdp: 2024, gdpcap: 2024, gdpgrow: 2024, infl: 2024, unemp: 2024, lifeexp: 2024, exports: 2024, internet: 2024, forest: 2024, eduspend: 2021 },
+    popSeries: [321815121, 324353340, 326608609, 328529577, 330226227, 331578104, 332100166, 333996304, 336755052, 340003797],
+    gdpSeries: [18295019000000, 18804913000000, 19612102000000, 20656516000000, 21539982000000, 21375281000000, 23725645000000, 26054614000000, 27811517000000, 29298013000000] },
+  { code: "ID", name: "Indonesia", region: "Southeast Asia",
+    v: { pop: 283487931, gdp: 1396301788462, gdpcap: 4925.44, gdpgrow: 5.03, infl: 2.18, unemp: 3.3, lifeexp: 71.29, exports: 22.31, internet: 72.78, forest: 50.67, eduspend: 1.28 },
+    y: { pop: 2024, gdp: 2024, gdpcap: 2024, gdpgrow: 2024, infl: 2024, unemp: 2024, lifeexp: 2024, exports: 2024, internet: 2024, forest: 2024, eduspend: 2023 },
+    popSeries: [261799249, 264627418, 267346658, 269951846, 272489381, 274814866, 276758053, 278830529, 281190067, 283487931],
+    gdpSeries: [860854232686, 931877364038, 1015618744160, 1042271532989, 1119099871350, 1059054842698, 1186509691087, 1319101183380, 1371166925750, 1396301788462] },
+  { code: "BR", name: "Brazil", region: "South America",
+    v: { pop: 211998573, gdp: 2185821610689, gdpcap: 10310.55, gdpgrow: 3.42, infl: 4.37, unemp: 6.8, lifeexp: 76.02, exports: 17.94, internet: 84.46, forest: 58.55, eduspend: 5.62 },
+    y: { pop: 2024, gdp: 2024, gdpcap: 2024, gdpgrow: 2024, infl: 2024, unemp: 2024, lifeexp: 2024, exports: 2024, internet: 2024, forest: 2024, eduspend: 2022 },
+    popSeries: [201675532, 203218114, 204703445, 206107261, 207455459, 208660842, 209550294, 210306415, 211140729, 211998573],
+    gdpSeries: [1802212206815, 1795693482853, 2063514977366, 1916933898011, 1873288205060, 1476107231310, 1670647398905, 1951923942083, 2191131765685, 2185821610689] },
+  { code: "JP", name: "Japan", region: "East Asia",
+    v: { pop: 123975371, gdp: 4190008188359, gdpcap: 33797.1, gdpgrow: -0.24, infl: 2.74, unemp: 2.5, lifeexp: 84.04, exports: 21.98, internet: 85.54, forest: 68.34, eduspend: 3.34 },
+    y: { pop: 2024, gdp: 2024, gdpcap: 2024, gdpgrow: 2024, infl: 2024, unemp: 2024, lifeexp: 2024, exports: 2024, internet: 2024, forest: 2024, eduspend: 2021 },
+    popSeries: [127141000, 127076000, 126972000, 126811000, 126633000, 126261000, 125681593, 125124989, 124516650, 123975371],
+    gdpSeries: [4534438580495, 5110357383254, 5038231631661, 5154293721630, 5245755000479, 5189197543645, 5225933520753, 4447976207315, 4384854269962, 4190008188359] },
+  { code: "DE", name: "Germany", region: "Europe",
+    v: { pop: 83516593, gdp: 4685592577805, gdpcap: 56103.73, gdpgrow: -0.5, infl: 2.26, unemp: 3.4, lifeexp: 80.79, exports: 41.43, internet: 93.5, forest: 32.84, eduspend: 5.24 },
+    y: { pop: 2024, gdp: 2024, gdpcap: 2024, gdpgrow: 2024, infl: 2024, unemp: 2024, lifeexp: 2024, exports: 2024, internet: 2024, forest: 2024, eduspend: 2022 },
+    popSeries: [81686611, 82348669, 82657002, 82905782, 83092962, 83160871, 83196078, 83177813, 83287273, 83516593],
+    gdpSeries: [3425099578746, 3536787895179, 3765351626106, 4055433215302, 3959894794039, 3941398957074, 4355251953411, 4201021706479, 4562207532490, 4685592577805] },
+  { code: "GB", name: "United Kingdom", region: "Europe",
+    v: { pop: 69281000, gdp: 3695539513534, gdpcap: 53341.31, gdpgrow: 1.08, infl: 3.27, unemp: 4.36, lifeexp: 81.39, exports: 31.06, internet: 95.47, forest: 13.5, eduspend: 5.91 },
+    y: { pop: 2024, gdp: 2024, gdpcap: 2024, gdpgrow: 2024, infl: 2024, unemp: 2024, lifeexp: 2024, exports: 2024, internet: 2024, forest: 2024, eduspend: 2021 },
+    popSeries: [65087000, 65606000, 65964000, 66287000, 66628000, 66740000, 66978000, 67636000, 68526000, 69281000],
+    gdpSeries: [2945579890258, 2706807606539, 2699118387873, 2897028009916, 2875710080015, 2724001478305, 3194559188926, 3181244350465, 3420796653789, 3695539513534] },
+  { code: "FR", name: "France", region: "Europe",
+    v: { pop: 68551653, gdp: 3160442622465, gdpcap: 46103.08, gdpgrow: 1.19, infl: 2, unemp: 7.4, lifeexp: 82.98, exports: 33.89, internet: 88.65, forest: 32.85, eduspend: 5.32 },
+    y: { pop: 2024, gdp: 2024, gdpcap: 2024, gdpgrow: 2024, infl: 2024, unemp: 2024, lifeexp: 2024, exports: 2024, internet: 2024, forest: 2024, eduspend: 2022 },
+    popSeries: [66548272, 66724104, 66918020, 67158348, 67382061, 67601110, 67842811, 68184457, 68372286, 68551653],
+    gdpSeries: [2442483452643, 2470407619777, 2588868323335, 2781576320884, 2722793515172, 2647926055110, 2966433692008, 2794788137067, 3056250648138, 3160442622465] },
+  { code: "KR", name: "South Korea", region: "East Asia",
+    v: { pop: 51751065, gdp: 1875388209407, gdpcap: 36238.64, gdpgrow: 2, infl: 2.32, unemp: 2.78, lifeexp: 83.63, exports: 44.36, internet: 97.9, forest: 64.37, eduspend: 5.41 },
+    y: { pop: 2024, gdp: 2024, gdpcap: 2024, gdpgrow: 2024, infl: 2024, unemp: 2024, lifeexp: 2024, exports: 2024, internet: 2024, forest: 2024, eduspend: 2022 },
+    popSeries: [51014947, 51217803, 51361911, 51585058, 51764822, 51836239, 51769539, 51672569, 51712619, 51751065],
+    gdpSeries: [1539212301136, 1579150518945, 1710196756713, 1824251454307, 1751045752055, 1744070276373, 1942313560966, 1799363116867, 1844800934392, 1875388209407] },
+  { code: "AU", name: "Australia", region: "Oceania",
+    v: { pop: 27194286, gdp: 1757022451653, gdpcap: 64609.99, gdpgrow: 1.37, infl: 3.17, unemp: 3.94, lifeexp: 83.05, exports: 24.62, internet: 96.13, forest: 17.37, eduspend: 5.06 },
+    y: { pop: 2024, gdp: 2024, gdpcap: 2024, gdpgrow: 2024, infl: 2024, unemp: 2024, lifeexp: 2024, exports: 2024, internet: 2024, forest: 2024, eduspend: 2022 },
+    popSeries: [23815995, 24190907, 24592588, 24963258, 25334826, 25649248, 25685412, 26018721, 26659922, 27194286],
+    gdpSeries: [1356805839936, 1211588128418, 1330890554614, 1433144978762, 1398349602956, 1333336461648, 1560617493203, 1695627535476, 1734451264656, 1757022451653] },
+  { code: "NG", name: "Nigeria", region: "Africa",
+    v: { pop: 232679478, gdp: 252261880140, gdpcap: 1084.16, gdpgrow: 4.07, infl: 33.24, unemp: 3.05, lifeexp: 54.64, exports: null, internet: 41.21, forest: 18.95, eduspend: 0.32 },
+    y: { pop: 2024, gdp: 2024, gdpcap: 2024, gdpgrow: 2024, infl: 2024, unemp: 2024, lifeexp: 2024, exports: null, internet: 2024, forest: 2024, eduspend: 2023 },
+    popSeries: [190671878, 195443700, 200254579, 204938755, 209485641, 213996181, 218529286, 223150896, 227882945, 232679478],
+    gdpSeries: [493026682801, 404649125252, 375745731053, 421739251509, 668219992687, 598586817817, 609147716965, 646950257575, 487387801878, 252261880140] },
 ];
 
-// The eleven headline indicators: key, label, unit, World Bank code, and a
-// plain-language note on what the series counts. The Indicators page shows
-// these, and each figure on the site names its source beside it.
-export const INDICATORS = [
-  { key: "pop", label: "Population", unit: "people", code: "SP.POP.TOTL",
-    about: "All residents of the country at mid-year, regardless of citizenship. The World Bank builds it from censuses, civil registration and the UN’s population estimates." },
-  { key: "gdp", label: "GDP", unit: "current US$", code: "NY.GDP.MKTP.CD",
-    about: "Gross domestic product at market prices: the value of everything produced inside the country in a year, converted to US dollars at the market exchange rate." },
-  { key: "gdppc", label: "GDP per person", unit: "current US$", code: "NY.GDP.PCAP.CD",
-    about: "GDP divided by the mid-year population. A rough gauge of average income, not of how that income is shared." },
-  { key: "growth", label: "GDP growth", unit: "% per year", code: "NY.GDP.MKTP.KD.ZG",
-    about: "How much the economy grew in real terms, after stripping out price rises. A negative number means the economy shrank that year." },
-  { key: "life", label: "Life expectancy", unit: "years", code: "SP.DYN.LE00.IN",
-    about: "How long a newborn would live if death rates at each age stayed as they are today. It summarises health, nutrition and medical care in one number." },
-  { key: "urban", label: "Urban population", unit: "% of total", code: "SP.URB.TOTL.IN.ZS",
-    about: "The share of people living in places each country’s own statistics office counts as urban. Definitions differ, so small gaps between countries mean little." },
-  { key: "unemp", label: "Unemployment", unit: "% of labour force", code: "SL.UEM.TOTL.ZS",
-    about: "People without work who are available for and looking for a job, as a share of the labour force. It misses informal work, which is large in several countries here." },
-  { key: "fert", label: "Fertility rate", unit: "children per woman", code: "SP.DYN.TFRT.IN",
-    about: "The average number of children a woman would have over her lifetime at today’s birth rates. About 2.1 keeps a population steady without migration." },
-  { key: "internet", label: "Internet users", unit: "% of population", code: "IT.NET.USER.ZS",
-    about: "People who used the internet in the last three months, from any device. The World Bank series was revised in 2023, which is why some countries jump between years." },
-  { key: "age65", label: "Aged 65 and over", unit: "% of population", code: "SP.POP.65UP.TO.ZS",
-    about: "The share of the population aged 65 or older. High values mean an ageing society, with more pensions and care to fund from fewer workers." },
-  { key: "area", label: "Land area", unit: "sq. km", code: "AG.SRF.TOTL.K2",
-    about: "The country’s land surface, excluding inland water. Divide population by it to get people per square kilometre." },
-];
-
-export function byCode(code) {
-  return COUNTRIES.find((c) => c.code === code);
+export function indicatorById(id) {
+  return INDICATORS.find((item) => item.id === id) || INDICATORS[0];
 }
 
-export function density(country) {
-  return country.pop / country.area;
+export function countryByCode(code) {
+  return COUNTRIES.find((item) => item.code === code) || null;
 }
 
-// A country's rank (1 = highest) on one indicator, among the twelve.
-export function rankOf(country, key) {
-  const ordered = sortedBy(key);
-  return ordered.findIndex((c) => c.code === country.code) + 1;
+// Rank of a country on one indicator: 1 is the largest value. Nulls are skipped.
+export function rankOf(country, indicatorId) {
+  const value = country.v[indicatorId];
+  if (value === null || value === undefined) return null;
+  let rank = 1;
+  for (const other of COUNTRIES) {
+    const otherValue = other.v[indicatorId];
+    if (otherValue !== null && otherValue !== undefined && otherValue > value) rank += 1;
+  }
+  return rank;
 }
 
-export function sortedBy(key) {
-  return [...COUNTRIES].sort((a, b) => b[key] - a[key]);
+export function sortedBy(indicatorId, descending = true) {
+  const rows = COUNTRIES.filter((c) => c.v[indicatorId] !== null && c.v[indicatorId] !== undefined);
+  rows.sort((a, b) => descending ? b.v[indicatorId] - a.v[indicatorId] : a.v[indicatorId] - b.v[indicatorId]);
+  return rows;
 }

@@ -1,27 +1,41 @@
-# nationscope
+# NationScope — National statistics, explored
 
-[![make.fun · best-national-statistics-site-20261126-0539](https://make.fun/badge/best-national-statistics-site-20261126-0539.svg)](https://make.fun/bounty/best-national-statistics-site-20261126-0539?utm_source=github&utm_medium=readme&utm_campaign=best-national-statistics-site-20261126-0539)
-[![rank](https://make.fun/badge/best-national-statistics-site-20261126-0539/zetinhere/nationscope/rank.svg)](https://make.fun/bounty/best-national-statistics-site-20261126-0539/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=best-national-statistics-site-20261126-0539)
-[![reward](https://make.fun/badge/best-national-statistics-site-20261126-0539/zetinhere/nationscope/reward.svg)](https://make.fun/bounty/best-national-statistics-site-20261126-0539?utm_source=github&utm_medium=readme&utm_campaign=best-national-statistics-site-20261126-0539)
+A static site that puts real national statistics in front of people: twelve
+countries, eleven World Bank indicators, every figure dated, with rankings,
+side-by-side comparisons, and 2015–2024 trends for population and GDP.
 
-NationScope is a national statistics explorer: twelve countries, eleven World Bank indicators for 2024, a decade of population and GDP charts, a three-country comparison tool and rankings for every indicator — all as static files that work offline.
+## The site
 
-## What's inside
+- **Dashboard** — biggest populations and economies, three findings from the
+  numbers, and a searchable grid of all twelve countries.
+- **Country profile** — eleven stat cards with each country's rank, plus
+  population and GDP line charts for 2015–2024.
+- **Compare** — pick any three countries; grouped bars and a full table where
+  the highest of the three is highlighted in each row.
+- **Rankings** — every indicator as a bar-scaled table, one click per indicator.
+- **Indicators** — what each measure means, with its World Bank code.
+- **About the data** — sources, method, and the gaps (Nigeria's exports share
+  is not reported by the World Bank, so it reads "Not reported").
 
-- **Dashboard** — the twelve countries at a glance, the biggest populations and economies, a search box and three findings from the numbers.
-- **Country profiles** — ten headline figures with ranks, a 2015–2024 population chart and a GDP chart for each country.
-- **Compare** — pick any three countries and see their figures side by side, with grouped bar charts and a full table.
-- **Rankings** — all twelve countries ordered by any of the eleven indicators.
-- **Indicators** — what each series measures, with its World Bank code.
+## Data
+
+All 132 figures come from the World Bank's World Development Indicators,
+fetched from the World Bank API on 26 November 2026 and stored with the site
+in `app/data.js`. Each value carries its year; most are 2024. The site makes
+no network request at runtime.
 
 ## Run it
 
 ```sh
-node serve.ts
+node serve.ts --port 8080   # then open http://localhost:8080/
 ```
 
-Then open http://localhost:8080. No build step, no network requests at run time: the data lives in `app/data.js`, and every figure comes from the World Bank's World Development Indicators, 2024.
+## Hand it in
 
----
+```sh
+mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
+```
 
-<sub>Entered on [make.fun](https://make.fun/?ref=jc69fpy6&utm_source=github&utm_medium=readme&utm_campaign=best-national-statistics-site-20261126-0539) · AI agents build software for cash rewards</sub>
+`main.ts` copies `app/` and `screenshots/` to the output directory and writes
+`dossier.json` with the kit's `buildDossier`. It is deterministic: two runs
+write the same bytes.

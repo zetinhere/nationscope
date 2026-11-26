@@ -1,307 +1,222 @@
-// The pages of NationScope: dashboard, one profile per country, the
-// comparison tool, the rankings table, the indicator guide and about. Each
-// page is a string of HTML built from the data in data.js; nothing is
-// fetched from anywhere else.
+// Page views for NationScope. Each view returns an HTML string for #app.
+import { COUNTRIES, INDICATORS, SOURCE_NAME, DATA_FETCHED, SERIES_YEARS, indicatorById, countryByCode, rankOf, sortedBy } from "./data.js";
+import { formatValue, shortValue, shortCount, shortMoney } from "./format.js";
+import { barChart, lineChart, groupedBars, escapeHtml } from "./charts.js";
 
-import { COUNTRIES, INDICATORS, DATA_YEAR, WORLD_POPULATION_2024, byCode, density, rankOf, sortedBy } from "./data.js";
-import { fmtInt, fmtMoney, fmtMoneyShort, fmtPop, fmtPopShort, fmtSigned, fmtValue, escapeHtml } from "./format.js";
-import { barChart, lineChart, groupedBars } from "./charts.js";
-
-const SOURCE_LINE = `Source: World Bank, World Development Indicators, ${DATA_YEAR}.`;
-
-function ordinal(n) {
-  if (n === 1) return "1st";
-  if (n === 2) return "2nd";
-  if (n === 3) return "3rd";
-  return `${n}th`;
+export function header(active) {
+  const link = (href, label, key) => `<a href="${href}" class="${active === key ? "nav-active" : ""}">${label}</a>`;
+  return `<header class="site-header"><div class="wrap header-inner">
+    <a class="brand" href="#/"><span class="brand-mark">N</span> NationScope</a>
+    <nav class="site-nav">
+      ${link("#/", "Countries", "home")}
+      ${link("#/rankings/gdp", "Rankings", "rankings")}
+      ${link("#/indicators", "Indicators", "indicators")}
+      ${link("#/about", "About the data", "about")}
+    </nav>
+  </div></header>`;
 }
 
-// A headline figure: label on top, the number big, a note underneath.
-function figure(label, value, sub) {
-  return `<div class="stat"><span class="stat-label">${escapeHtml(label)}</span><span class="stat-value">${escapeHtml(value)}</span><span class="stat-sub">${escapeHtml(sub)}</span></div>`;
+export function footer() {
+  return `<footer class="site-footer"><div class="wrap">
+    <p>Figures: ${SOURCE_NAME}, fetched ${DATA_FETCHED}. Every figure on this site names its year.</p>
+    <p>NationScope is an independent explorer built for looking up national statistics. It is not affiliated with the World Bank.</p>
+  </div></footer>`;
 }
 
-function rankText(country, key, what) {
-  return `${ordinal(rankOf(country, key))} of 12 in ${what}`;
+function statCard(country, indicator) {
+  const value = country.v[indicator.id];
+  const rank = rankOf(country, indicator.id);
+  const rankText = rank ? `#${rank} of 12` : "—";
+  return `<a class="stat-card" href="#/rankings/${indicator.id}">
+    <span class="stat-label">${escapeHtml(indicator.label)}</span>
+    <span class="stat-value">${escapeHtml(formatValue(indicator, value))}</span>
+    <span class="stat-meta">${rankText} · ${escapeHtml(country.y[indicator.id] ? String(country.y[indicator.id]) : "")}</span>
+  </a>`;
 }
 
-// Short forms for chart labels, where the full wording would not fit.
-function shortValue(key, value) {
-  if (key === "pop") return fmtPopShort(value);
-  if (key === "gdp") return fmtMoneyShort(value);
-  if (key === "gdppc") return `$${fmtInt(value)}`;
-  return fmtValue(key, value);
+function countryCard(country) {
+  const pop = indicatorById("pop");
+  const gdp = indicatorById("gdp");
+  const gdpcap = indicatorById("gdpcap");
+  return `<a class="country-card" href="#/country/${country.code}" data-name="${escapeHtml(country.name.toLowerCase())}">
+    <span class="country-code">${escapeHtml(country.code)}</span>
+    <span class="country-name">${escapeHtml(country.name)}</span>
+    <span class="country-region">${escapeHtml(country.region)}</span>
+    <span class="country-figures">
+      <span><b>${escapeHtml(shortCount(country.v.pop))}</b> people</span>
+      <span><b>${escapeHtml(shortMoney(country.v.gdp))}</b> GDP</span>
+      <span><b>${escapeHtml(shortMoney(country.v.gdpcap))}</b> per person</span>
+    </span>
+  </a>`;
 }
 
-function countryCard(c) {
-  return `<article class="country-card">
-<a href="#/country/${c.code}" class="country-link">
-<span class="country-name">${escapeHtml(c.name)}</span>
-<span class="country-region">${escapeHtml(c.region)} &middot; capital ${escapeHtml(c.capital)}</span>
-<span class="country-figures"><strong>${fmtPop(c.pop)}</strong> people &middot; <strong>${fmtMoney(c.gdp)}</strong> GDP</span>
-<span class="country-blurb">${escapeHtml(c.blurb)}</span>
-<span class="country-more">See the full profile &rarr;</span>
-</a></article>`;
-}
-
-// ---- Dashboard ------------------------------------------------------------
-
-export function dashboard() {
-  const totalPop = COUNTRIES.reduce((s, c) => s + c.pop, 0);
-  const totalGdp = COUNTRIES.reduce((s, c) => s + c.gdp, 0);
-  const share = ((totalPop / WORLD_POPULATION_2024) * 100).toFixed(0);
-  const byPop = sortedBy("pop").slice(0, 5);
-  const byGdp = sortedBy("gdp").slice(0, 5);
-  const longestLived = sortedBy("life")[0];
-  const fastestGrowing = sortedBy("growth")[0];
-  const richest = sortedBy("gdppc")[0];
-
-  const heroFigures = [
-    ["People in this atlas", fmtPop(totalPop), `${share}% of the world’s 8.2 billion`],
-    ["Combined GDP", fmtMoney(totalGdp), `Current US$, ${DATA_YEAR}`],
-    ["Longest-lived", longestLived.name, fmtValue("life", longestLived.life)],
-    ["Fastest-growing economy", fastestGrowing.name, `${fmtValue("growth", fastestGrowing.growth)} GDP growth`],
-    ["Richest per person", richest.name, fmtValue("gdppc", richest.gdppc)],
-  ].map(([label, value, sub]) => figure(label, value, sub)).join("\n");
-
-  return `<section class="hero">
-<h1>The world in numbers</h1>
-<p class="lede">Twelve countries, eleven headline indicators, one decade of change. Every figure comes from the World Bank’s World Development Indicators for ${DATA_YEAR}, with its source and year shown beside it.</p>
-<div class="hero-stats">
-${heroFigures}
-</div>
-</section>
-
-<section class="panel">
-<h2>Biggest populations, ${DATA_YEAR}</h2>
-${barChart(byPop.map((c) => ({ label: c.name, value: c.pop, display: fmtPopShort(c.pop) })))}
-<p class="note">India passed China as the world’s most populous country in 2023 and keeps pulling away. ${SOURCE_LINE}</p>
-</section>
-
-<section class="panel">
-<h2>Biggest economies, ${DATA_YEAR}</h2>
-${barChart(byGdp.map((c) => ({ label: c.name, value: c.gdp, display: fmtMoneyShort(c.gdp) })))}
-<p class="note">The United States is larger than the next three economies in this atlas combined. <a href="#/rankings/gdp">See the full GDP ranking &rarr;</a> ${SOURCE_LINE}</p>
-</section>
-
-<section class="panel">
-<h2>Find a country</h2>
-<label class="search-label" for="country-search">Search the twelve countries</label>
-<input id="country-search" type="search" placeholder="Type a name, region or capital&hellip;" autocomplete="off">
-<div class="country-grid" id="country-grid">
-${COUNTRIES.map(countryCard).join("\n")}
-</div>
-<p class="note" id="search-empty" hidden>No country matches that search. Try a region such as Europe or Asia.</p>
-</section>
-
-<section class="panel">
-<h2>Three things the numbers say</h2>
-<ol class="findings">
-<li><strong>Ageing against youth.</strong> Japan has the oldest population here (29.8% aged 65+); Nigeria the youngest (3.1%). South Korea’s fertility, 0.75 children per woman, is the lowest ever recorded for a large country.</li>
-<li><strong>Growth has moved south and east.</strong> India grew 7.1% and Indonesia 5.0% in ${DATA_YEAR}; Germany shrank 0.5% and Japan 0.2%.</li>
-<li><strong>Being connected is now normal almost everywhere.</strong> Internet use tops 90% in South Korea, the United Kingdom, the United States and Germany &mdash; and is still under half the population in Nigeria.</li>
-</ol>
-<p class="note"><a href="#/compare">Compare any three countries side by side &rarr;</a></p>
-</section>`;
-}
-
-// ---- Country profile ------------------------------------------------------
-
-export function country(code) {
-  const c = byCode(code);
-  if (!c) return missing();
-  const popChange = ((c.popSeries[9] / c.popSeries[0] - 1) * 100).toFixed(1);
-  const gdpChange = ((c.gdpSeries[9] / c.gdpSeries[0] - 1) * 100).toFixed(0);
-  const popGrew = c.popSeries[9] >= c.popSeries[0];
-  const gdpGrew = c.gdpSeries[9] >= c.gdpSeries[0];
-  const others = COUNTRIES.filter((o) => o.code !== c.code).slice(0, 5);
-
-  const figures = [
-    ["Population", fmtPop(c.pop), rankText(c, "pop", "population")],
-    ["GDP", fmtMoney(c.gdp), rankText(c, "gdp", "GDP")],
-    ["GDP per person", fmtValue("gdppc", c.gdppc), rankText(c, "gdppc", "GDP per person")],
-    ["GDP growth", fmtValue("growth", c.growth), rankText(c, "growth", "growth")],
-    ["Life expectancy", fmtValue("life", c.life), rankText(c, "life", "life expectancy")],
-    ["Urban population", fmtValue("urban", c.urban), rankText(c, "urban", "urban share")],
-    ["Unemployment", fmtValue("unemp", c.unemp), rankText(c, "unemp", "unemployment")],
-    ["Fertility rate", fmtValue("fert", c.fert), rankText(c, "fert", "fertility")],
-    ["Internet users", fmtValue("internet", c.internet), rankText(c, "internet", "internet use")],
-    ["Aged 65 and over", fmtValue("age65", c.age65), rankText(c, "age65", "share aged 65+")],
-  ].map(([label, value, sub]) => figure(label, value, sub)).join("\n");
-
-  return `<p class="crumbs"><a href="#/">&larr; All countries</a> &middot; <a href="#/rankings/pop">Rankings</a> &middot; <a href="#/compare/${c.code}">Compare ${escapeHtml(c.name)}</a></p>
-<header class="country-head">
-<h1>${escapeHtml(c.name)}</h1>
-<p class="lede">${escapeHtml(c.blurb)}</p>
-<p class="facts"><strong>Capital:</strong> ${escapeHtml(c.capital)} &middot; <strong>Region:</strong> ${escapeHtml(c.region)} &middot; <strong>Currency:</strong> ${escapeHtml(c.currency)} &middot; <strong>Land area:</strong> ${fmtValue("area", c.area)} &middot; <strong>Density:</strong> ${fmtInt(density(c))} people per km&sup2;</p>
-</header>
-
-<section class="panel">
-<h2>Headline figures, ${DATA_YEAR}</h2>
-<div class="stat-grid">
-${figures}
-</div>
-<p class="note">${SOURCE_LINE} Ranks are among the twelve countries in this atlas.</p>
-</section>
-
-<section class="panel">
-<h2>Population, 2015&ndash;${DATA_YEAR}</h2>
-${lineChart(c.popSeries, { color: "#0b5cad", unit: "M" })}
-<p class="note">${escapeHtml(c.name)}’s population ${popGrew ? "grew" : "fell"} ${Math.abs(popChange)}% over the decade, from ${c.popSeries[0].toFixed(1)} million in 2015 to ${c.popSeries[9].toFixed(1)} million in ${DATA_YEAR}. ${SOURCE_LINE}</p>
-</section>
-
-<section class="panel">
-<h2>GDP, 2015&ndash;${DATA_YEAR} (US$ billions)</h2>
-${lineChart(c.gdpSeries, { color: "#0e7a5f", unit: "" })}
-<p class="note">GDP ${gdpGrew ? "rose" : "fell"} ${Math.abs(gdpChange)}% in current dollars over the decade, from $${fmtInt(c.gdpSeries[0])} billion in 2015 to $${fmtInt(c.gdpSeries[9])} billion in ${DATA_YEAR}. The 2020 dip is the pandemic year. ${SOURCE_LINE}</p>
-</section>
-
-<section class="panel">
-<h2>Keep exploring</h2>
-<p>Compare ${escapeHtml(c.name)} with two others on every indicator: <a href="#/compare/${c.code}">open the comparison tool &rarr;</a></p>
-<p>Or browse another country:</p>
-<ul class="inline-links">${others.map((o) => `<li><a href="#/country/${o.code}">${escapeHtml(o.name)}</a></li>`).join("")}</ul>
-</section>`;
-}
-
-// ---- Compare --------------------------------------------------------------
-
-function picker(id, selected, label) {
-  const options = COUNTRIES.map(
-    (c) => `<option value="${c.code}"${c.code === selected ? " selected" : ""}>${escapeHtml(c.name)}</option>`,
-  ).join("");
-  return `<label class="picker"><span>${escapeHtml(label)}</span><select id="${id}">${options}</select></label>`;
-}
-
-export function compare(codes) {
-  const picked = [];
-  for (const code of codes) {
-    const c = byCode(code);
-    if (c && !picked.includes(c)) picked.push(c);
-  }
-  while (picked.length < 3) picked.push(COUNTRIES.find((c) => !picked.includes(c)));
-  const [a, b, c] = picked;
-
-  const glanceDefs = [
-    { label: "Population", key: "pop", short: true },
-    { label: "GDP", key: "gdp", short: true },
-    { label: "GDP per person", key: "gdppc", short: true },
-    { label: "Life expectancy", key: "life", short: false },
-  ];
-  const glance = glanceDefs.map((g) => ({
-    label: g.label,
-    values: picked.map((country) => ({
-      name: country.name,
-      value: country[g.key],
-      display: g.short ? shortValue(g.key, country[g.key]) : fmtValue(g.key, country[g.key]),
-    })),
+export function dashboardView() {
+  const topPop = sortedBy("pop").slice(0, 5).map((c) => ({
+    label: c.name, value: c.v.pop, display: shortCount(c.v.pop),
   }));
-
-  const keys = ["pop", "gdp", "gdppc", "growth", "life", "urban", "unemp", "fert", "internet", "age65", "area"];
-  const rows = keys.map((key) => {
-    const ind = INDICATORS.find((i) => i.key === key);
-    const cells = picked.map((country) => `<td>${fmtValue(key, country[key])}</td>`).join("");
-    const best = picked.reduce((top, country) => (country[key] > top[key] ? country : top), picked[0]);
-    const marks = picked.map((country) => `<td>${country.code === best.code ? "<strong>Highest</strong>" : "&mdash;"}</td>`).join("");
-    return `<tr><th scope="row">${escapeHtml(ind.label)} <span class="unit">(${escapeHtml(ind.unit)})</span></th>${cells}</tr>\n<tr class="best-row"><th scope="row"><span class="unit">Highest of the three</span></th>${marks}</tr>`;
-  }).join("\n");
-
-  return `<h1>Compare countries</h1>
-<p class="lede">Pick any three countries and put their headline figures side by side. Bars are scaled within each indicator, so unlike units never mix.</p>
-<section class="panel">
-<div class="pickers" id="pickers">
-${picker("pick-a", a.code, "First country")}
-${picker("pick-b", b.code, "Second country")}
-${picker("pick-c", c.code, "Third country")}
-</div>
-<p class="note">Changing a picker reloads the comparison. <a href="#/country/${a.code}">Profile: ${escapeHtml(a.name)}</a> &middot; <a href="#/country/${b.code}">${escapeHtml(b.name)}</a> &middot; <a href="#/country/${c.code}">${escapeHtml(c.name)}</a></p>
-</section>
-<section class="panel">
-<h2>At a glance</h2>
-${groupedBars(glance)}
-</section>
-<section class="panel">
-<h2>Every headline figure</h2>
-<table class="compare-table">
-<thead><tr><th scope="col">Indicator</th>${picked.map((country) => `<th scope="col"><a href="#/country/${country.code}">${escapeHtml(country.name)}</a></th>`).join("")}</tr></thead>
-<tbody>${rows}</tbody>
-</table>
-<p class="note">${SOURCE_LINE} Density and ranks are on each country’s profile page.</p>
-</section>`;
+  const topGdp = sortedBy("gdp").slice(0, 5).map((c) => ({
+    label: c.name, value: c.v.gdp, display: shortMoney(c.v.gdp),
+  }));
+  const popInd = indicatorById("pop");
+  const gdpInd = indicatorById("gdp");
+  const cards = COUNTRIES.map(countryCard).join("");
+  return `
+  <section class="hero"><div class="wrap">
+    <p class="eyebrow">Twelve countries · Eleven indicators · One source</p>
+    <h1>National statistics, explored.</h1>
+    <p class="lede">Real figures for the world's biggest economies and populations — population, GDP, prices, jobs, health and more — from the World Bank, with every figure dated.</p>
+    <p class="hero-stats"><span><b>12</b> countries</span><span><b>11</b> indicators</span><span><b>132</b> figures</span><span><b>2015–2024</b> trends</span></p>
+  </div></section>
+  <div class="wrap">
+    <section class="chart-duo">
+      <article class="panel"><h2>Biggest populations, 2024</h2>${barChart(topPop, popInd)}<p class="panel-note"><a href="#/rankings/pop">See the full population ranking →</a></p></article>
+      <article class="panel"><h2>Biggest economies, 2024</h2>${barChart(topGdp, gdpInd)}<p class="panel-note"><a href="#/rankings/gdp">See the full GDP ranking →</a></p></article>
+    </section>
+    <section class="findings"><h2>Three things the numbers say</h2><ol>
+      <li><b>India is now the most populous country.</b> At 1.45 billion people in 2024 it sits ahead of China (1.41 billion), whose population fell for a third straight year. <a href="#/country/IN">India's profile →</a></li>
+      <li><b>Nigeria's prices rose 33% in a single year.</b> Inflation of 33.24% in 2024 dwarfs every other country here — the next highest, Brazil, is 4.37%. <a href="#/country/NG">Nigeria's profile →</a></li>
+      <li><b>Life expectancy spans almost 30 years.</b> A newborn in Japan can expect 84.0 years; in Nigeria, 54.6. <a href="#/rankings/lifeexp">The life-expectancy ranking →</a></li>
+    </ol></section>
+    <section class="countries"><h2>All twelve countries</h2>
+      <label class="search-label" for="country-search">Search countries</label>
+      <input id="country-search" class="search" type="search" placeholder="Type a country name — try “Japan”" autocomplete="off">
+      <p class="search-empty" id="search-empty" hidden>No country matches that search.</p>
+      <div class="country-grid" id="country-grid">${cards}</div>
+    </section>
+  </div>`;
 }
 
-// ---- Rankings -------------------------------------------------------------
-
-export function rankings(key) {
-  const ind = INDICATORS.find((i) => i.key === key) || INDICATORS[0];
-  const rows = sortedBy(ind.key);
-  const leader = rows[0][ind.key];
-  const pills = INDICATORS.map(
-    (i) => `<li><a href="#/rankings/${i.key}"${i.key === ind.key ? ' class="active" aria-current="true"' : ""}>${escapeHtml(i.label)}</a></li>`,
-  ).join("");
-  const tableRows = rows.map((c, i) =>
-    `<tr><td>${i + 1}</td><td><a href="#/country/${c.code}">${escapeHtml(c.name)}</a></td><td>${fmtValue(ind.key, c[ind.key])}</td><td class="bar-cell"><span class="mini-bar" style="width:${((c[ind.key] / leader) * 100).toFixed(1)}%"></span></td></tr>`,
-  ).join("\n");
-  return `<h1>Rankings</h1>
-<p class="lede">All twelve countries, ordered by one indicator at a time. Pick an indicator to re-rank the table.</p>
-<ul class="pills">${pills}</ul>
-<section class="panel">
-<h2>${escapeHtml(ind.label)} &mdash; ${escapeHtml(ind.unit)}, ${DATA_YEAR}</h2>
-<p>${escapeHtml(ind.about)}</p>
-<table class="rank-table">
-<thead><tr><th scope="col">Rank</th><th scope="col">Country</th><th scope="col">Value</th><th scope="col"><span class="visually-hidden">Share of the leader</span></th></tr></thead>
-<tbody>${tableRows}</tbody>
-</table>
-<p class="note">${SOURCE_LINE} World Bank code ${escapeHtml(ind.code)}. Rankings cover only the twelve countries in this atlas, not the whole world.</p>
-</section>`;
+export function countryView(code) {
+  const country = countryByCode(code);
+  if (!country) return notFoundView();
+  const cards = INDICATORS.map((ind) => statCard(country, ind)).join("");
+  const popInd = indicatorById("pop");
+  const gdpInd = indicatorById("gdp");
+  const others = COUNTRIES.filter((c) => c.code !== country.code).slice(0, 2);
+  const compareHref = `#/compare/${country.code}/${others[0].code}/${others[1].code}`;
+  return `<div class="wrap">
+    <p class="crumbs"><a href="#/">Countries</a> / ${escapeHtml(country.name)}</p>
+    <section class="country-head">
+      <span class="country-code big">${escapeHtml(country.code)}</span>
+      <div><h1>${escapeHtml(country.name)}</h1><p class="lede">${escapeHtml(country.region)} · All figures ${escapeHtml(SOURCE_NAME)}.</p></div>
+    </section>
+    <section class="stat-grid">${cards}</section>
+    <section class="chart-duo">
+      <article class="panel"><h2>Population, 2015–2024</h2>${lineChart(country.popSeries, SERIES_YEARS, "Population")}<p class="panel-note">${escapeHtml(shortCount(country.v.pop))} people in 2024, up from ${escapeHtml(shortCount(country.popSeries[0]))} in 2015.</p></article>
+      <article class="panel"><h2>GDP, 2015–2024</h2>${lineChart(country.gdpSeries, SERIES_YEARS, "GDP")}<p class="panel-note">${escapeHtml(shortMoney(country.v.gdp))} in 2024, from ${escapeHtml(shortMoney(country.gdpSeries[0]))} in 2015.</p></article>
+    </section>
+    <section class="keep-exploring"><h2>Keep exploring</h2>
+      <p><a href="${compareHref}">Compare ${escapeHtml(country.name)} with ${escapeHtml(others[0].name)} and ${escapeHtml(others[1].name)} →</a></p>
+      <p><a href="#/rankings/gdpcap">Where does ${escapeHtml(country.name)} rank on GDP per person? →</a></p>
+      <p><a href="#/indicators">What each indicator measures →</a></p>
+    </section>
+  </div>`;
 }
 
-// ---- Indicators -----------------------------------------------------------
+const COMPARE_IDS = ["pop", "gdp", "gdpcap", "lifeexp", "internet"];
 
-export function indicators() {
-  const cards = INDICATORS.map(
-    (i) => `<article class="indicator-card">
-<h2>${escapeHtml(i.label)}</h2>
-<p class="indicator-meta">${escapeHtml(i.unit)} &middot; World Bank code ${escapeHtml(i.code)}</p>
-<p>${escapeHtml(i.about)}</p>
-<p><a href="#/rankings/${i.key}">Rank the twelve countries by ${escapeHtml(i.label.toLowerCase())} &rarr;</a></p>
-</article>`,
-  ).join("\n");
-  return `<h1>Indicators, explained</h1>
-<p class="lede">Eleven headline indicators, each with what it measures, how it is counted, and its World Bank code so you can check the original series. All figures in this atlas are the ${DATA_YEAR} values of these series.</p>
-<div class="indicator-grid">${cards}</div>
-<p class="note">A note on honesty: unemployment misses informal work, urban shares use each country’s own definition, and the internet series was revised in 2023, which is why some countries jump between years. The numbers are the World Bank’s as published; the caveats are ours.</p>`;
+export function compareView(codes) {
+  const picked = codes.map(countryByCode).filter(Boolean);
+  const unique = [...new Map(picked.map((c) => [c.code, c])).values()];
+  while (unique.length < 3) {
+    const next = COUNTRIES.find((c) => !unique.includes(c));
+    unique.push(next);
+  }
+  const three = unique.slice(0, 3);
+  const option = (selected) => COUNTRIES.map((c) =>
+    `<option value="${c.code}"${c.code === selected ? " selected" : ""}>${escapeHtml(c.name)}</option>`).join("");
+  const pickers = three.map((c, i) =>
+    `<label class="picker">Country ${i + 1}<select data-picker="${i}">${option(c.code)}</select></label>`).join("");
+  const chart = groupedBars(COMPARE_IDS.map((id) => ({ id })), three, indicatorById);
+  const rows = INDICATORS.map((ind) => {
+    const vals = three.map((c) => c.v[ind.id]);
+    const best = Math.max(...vals.filter((v) => v !== null && v !== undefined));
+    const cells = three.map((c) => {
+      const v = c.v[ind.id];
+      const isBest = v !== null && v !== undefined && v === best && vals.filter((x) => x === best).length === 1;
+      return `<td class="${isBest ? "best" : ""}">${escapeHtml(shortValue(ind, v))}${v !== null && v !== undefined && c.y[ind.id] ? ` <span class="yr">${c.y[ind.id]}</span>` : ""}</td>`;
+    }).join("");
+    return `<tr><th scope="row">${escapeHtml(ind.label)} <span class="unit">${escapeHtml(ind.unit)}</span></th>${cells}</tr>`;
+  }).join("");
+  const headCells = three.map((c) => `<th scope="col">${escapeHtml(c.name)}</th>`).join("");
+  return `<div class="wrap">
+    <p class="crumbs"><a href="#/">Countries</a> / Compare</p>
+    <h1>Compare three countries</h1>
+    <p class="lede">Pick any three countries. The gold cell in each row is the highest of the three.</p>
+    <div class="pickers">${pickers}</div>
+    <section class="panel"><h2>At a glance</h2>${chart}</section>
+    <section class="panel"><h2>Every indicator, side by side</h2>
+      <div class="table-scroll"><table class="data-table"><thead><tr><th scope="col">Indicator</th>${headCells}</tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="panel-note">“Not reported” means the World Bank publishes no value for that country and indicator — Nigeria's exports share is one such gap.</p>
+    </section>
+  </div>`;
 }
 
-// ---- About ----------------------------------------------------------------
-
-export function about() {
-  return `<h1>About NationScope</h1>
-<p class="lede">NationScope is a small, independent atlas of national statistics: twelve countries, eleven headline indicators, and a decade of population and GDP history for each &mdash; with every figure sourced and dated.</p>
-<section class="panel">
-<h2>What it covers</h2>
-<ul>
-<li><strong>Twelve countries:</strong> India, China, the United States, Indonesia, Brazil, Japan, Germany, the United Kingdom, France, South Korea, Australia and Nigeria &mdash; together home to just over half of humanity.</li>
-<li><strong>Eleven indicators:</strong> population, GDP, GDP per person, GDP growth, life expectancy, urban share, unemployment, fertility, internet use, share aged 65+, and land area.</li>
-<li><strong>A decade of change:</strong> population and GDP series from 2015 to ${DATA_YEAR} for every country, drawn as charts on each profile.</li>
-</ul>
-</section>
-<section class="panel">
-<h2>Sources and method</h2>
-<p>Every figure comes from the World Bank’s World Development Indicators, downloaded on 26 November 2026. The indicator codes are listed on the <a href="#/indicators">indicators page</a>, and the source and year sit beside every figure. World population for context is about 8.2 billion in ${DATA_YEAR} (UN World Population Prospects 2024).</p>
-<p>Nothing on this site is fetched from another server: the data, the charts and the styles all live in the site’s own files, so it works offline and loads fast. Figures are shown as published; where the World Bank revised a series, the revised value is used and the break is noted.</p>
-</section>
-<section class="panel">
-<h2>What it is not</h2>
-<p>NationScope is not an official statistics office and it covers twelve countries, not the world. Ranks are among those twelve only. For a country’s own official numbers, its national statistics office is the authority; for the global series behind these figures, the World Bank’s databank is.</p>
-</section>
-<section class="panel">
-<h2>Built how</h2>
-<p>A static site: one HTML page, a stylesheet, and small JavaScript modules that draw the charts and switch pages by address. No framework, no tracking, no cookies, no network requests at run time.</p>
-</section>`;
+export function rankingsView(indicatorId) {
+  const indicator = indicatorById(indicatorId);
+  const rows = sortedBy(indicator.id);
+  const max = Math.max(...rows.map((c) => c.v[indicator.id]));
+  const pills = INDICATORS.map((ind) =>
+    `<a href="#/rankings/${ind.id}" class="pill${ind.id === indicator.id ? " pill-active" : ""}">${escapeHtml(ind.label)}</a>`).join("");
+  const body = rows.map((c, i) => {
+    const value = c.v[indicator.id];
+    const barW = Math.round((value / max) * 100);
+    return `<tr>
+      <td class="rank-cell">${i + 1}</td>
+      <td><a href="#/country/${c.code}">${escapeHtml(c.name)}</a></td>
+      <td class="bar-cell"><span class="bar-track"><span class="bar-fill" style="width:${barW}%"></span></span></td>
+      <td class="value-cell">${escapeHtml(shortValue(indicator, value))}</td>
+      <td class="yr">${c.y[indicator.id] || ""}</td>
+    </tr>`;
+  }).join("");
+  return `<div class="wrap">
+    <p class="crumbs"><a href="#/">Countries</a> / Rankings</p>
+    <h1>Rankings: ${escapeHtml(indicator.label)}</h1>
+    <p class="lede">${escapeHtml(indicator.blurb)}</p>
+    <div class="pills">${pills}</div>
+    <section class="panel"><div class="table-scroll"><table class="data-table rankings-table">
+      <thead><tr><th scope="col">#</th><th scope="col">Country</th><th scope="col"></th><th scope="col">Value</th><th scope="col" class="yr">Year</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>
+    <p class="panel-note">Source: ${escapeHtml(SOURCE_NAME)} (${escapeHtml(indicator.code)}), fetched ${escapeHtml(DATA_FETCHED)}.</p></section>
+  </div>`;
 }
 
-export function missing() {
-  return `<h1>Not found</h1>
-<p>There is no page at this address. Try the <a href="#/">dashboard</a>, the <a href="#/rankings/pop">rankings</a>, or a country profile such as <a href="#/country/ID">Indonesia</a>.</p>`;
+export function indicatorsView() {
+  const items = INDICATORS.map((ind) => `<article class="indicator-card">
+    <h2>${escapeHtml(ind.label)}</h2>
+    <p class="indicator-meta">${escapeHtml(ind.unit)} · World Bank code <code>${escapeHtml(ind.code)}</code></p>
+    <p>${escapeHtml(ind.blurb)}</p>
+    <p><a href="#/rankings/${ind.id}">See the ranking →</a></p>
+  </article>`).join("");
+  return `<div class="wrap">
+    <p class="crumbs"><a href="#/">Countries</a> / Indicators</p>
+    <h1>What each indicator measures</h1>
+    <p class="lede">Eleven indicators from the World Bank's World Development Indicators — the same dataset national statistics offices report to.</p>
+    <div class="indicator-grid">${items}</div>
+  </div>`;
+}
+
+export function aboutView() {
+  return `<div class="wrap narrow">
+    <p class="crumbs"><a href="#/">Countries</a> / About</p>
+    <h1>About the data</h1>
+    <h2>Where the figures come from</h2>
+    <p>Every figure on NationScope comes from the World Bank's World Development Indicators, the dataset behind most national statistics reporting. The figures were fetched from the World Bank API on ${escapeHtml(DATA_FETCHED)} and are stored with the site, so every page works with no network request.</p>
+    <h2>How to read a figure</h2>
+    <p>Each figure names its year. Most are 2024, the latest year the World Bank has published for these indicators. Government education spending is reported more slowly, so its latest year varies by country (2021–2023) and is shown next to each value.</p>
+    <h2>What is missing, and why</h2>
+    <p>Nigeria has no reported exports share of GDP in the World Bank dataset, so that cell reads “Not reported” rather than guessing. Unemployment figures are the ILO's modelled estimates, which is why they are comparable across countries with different survey methods.</p>
+    <h2>Limits</h2>
+    <p>Twelve countries cannot cover the world. These are the twelve largest by population and economy among the countries the site tracks, chosen so the comparisons are between peers of a similar scale. Figures are as the World Bank publishes them; they are revised by the Bank from time to time.</p>
+    <p><a href="#/">Back to the countries →</a></p>
+  </div>`;
+}
+
+export function notFoundView() {
+  return `<div class="wrap narrow">
+    <h1>That page is not here</h1>
+    <p class="lede">The country or page you asked for does not exist on NationScope.</p>
+    <p><a href="#/">Back to the twelve countries →</a></p>
+  </div>`;
 }
